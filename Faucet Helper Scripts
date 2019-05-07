@@ -1,0 +1,49 @@
+# BASH Scripts for creating Network Namespaces provded by the Faucet Documentation
+# https://github.com/faucetsdn/faucet
+
+create_ns () {
+	NAME=$1
+	IP=$2
+	NETNS=faucet-${NAME}
+	sudo ip netns add ${NETNS}
+	sudo ip link add dev veth-${NAME} type veth peer name veth0 netns $NETNS
+	sudo ip link set dev veth-${NAME} up
+	sudo ip netns exec ${NETNS} ip link set dev veth0 up
+	sudo ip netns exec ${NETNS} ip addr add dev veth0 $IP
+	sudo ip netns exec ${NETNS} ip link set dev lo up
+}
+
+
+as_ns () {
+	NAME=$1
+	NETNS=faucet-${NAME}
+	shift
+	sudo ip netns exec $NETNS $@
+}
+
+create_ns host1 192.168.0.1/24
+create_ns host2 192.168.0.2/24
+
+
+# FISH Alternative
+function create_ns -a NAME IP
+	if test (count $argv) = 2
+		set NETNS faucet-$NAME
+		sudo ip netns add $NETNS
+		sudo ip link add dev veth-$NAME type veth peer name veth0 netns $NETNS
+		sudo ip link set dev veth-$NAME up
+		sudo ip netns exec $NETNS ip link set dev veth0 up
+		sudo ip netns exec $NETNS ip addr add dev veth0 $IP
+		sudo ip netns exec $NETNS ip link set dev lo up
+	else
+		echo "Please provide 2 values for the Name and IP of the namespace resectively."
+	end
+end
+
+function as_ns -a NAME
+	set NETNS faucet-$NAME
+	sudo ip netns exec $NETNS $argv[2..-1]
+end
+
+Usage: The same way as the bash scripts.
+To save functions use the 'funcsave' ability within fish.
